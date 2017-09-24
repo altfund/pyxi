@@ -18,6 +18,8 @@ exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
 default_limit_ask = {"order_type":"ASK","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.1","price":"10000","test":False}}
 default_limit_bid = {"order_type":"BID","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.01","price":"0.0001","test": False}}
 
+
+
 def print_exchange_results(response, failure):
     failures = []
     for exchange in exchanges:
@@ -133,21 +135,22 @@ def getConfig():
             }
     return cfg
 
-def request(exchange, method):
+def request(data, method):
     config = getConfig()
     response = {}
-    if exchange.lower() == 'all':
+    data['exchange'] = data['exchange'].lower()
+    if data['exchange'] == 'all':
         for an_exchange in exchanges:
-            data = {"exchange": an_exchange.lower()}
+            #data = {"exchange": an_exchange.lower()}
             r = send(data, method, config)
             report(r, an_exchange.lower(), response)
 
     else:
-        data = {"exchange": exchange.lower()}
+        #data = {"exchange": exchange.lower()}
         r = send(data, method, config)
-        report(r, exchange.lower(), response)
+        report(r, data['exchange'], response)
 
-    print_report(response)
+    return(response)
 
 def requestLimitOrder(exchange, ordertype):
     order = ""
@@ -177,7 +180,7 @@ def requestLimitOrder(exchange, ordertype):
             limitorder.update({"exchange_credentials":creds})
             r = send(encrypt(limitorder, config), "limitorder", config)
             report(r, exchange.lower(), response)
-        print_report(response)
+        return(response)
 
 def requestOpenOrders(exchange):
     config = getConfig()
@@ -198,7 +201,7 @@ def requestOpenOrders(exchange):
         #orders_req.update({"exchange_credentials": creds});
         r = send(encrypt(creds, config), "openorders", config)
         report(r, exchange.lower(), response)
-    print_report(response)
+    return(response)
 
 def requestTradeHistory(exchange):
     config = getConfig()
@@ -219,7 +222,7 @@ def requestTradeHistory(exchange):
         history_req.update({"exchange_credentials": creds});
         r = send(encrypt(history_req, config), "tradehistory", config)
         report(r, exchange.lower(), response)
-    print_report(response)
+    return(response)
 
 def cancelLimitOrder(exchange, order_id):
     config = getConfig()
@@ -238,7 +241,7 @@ def cancelLimitOrder(exchange, order_id):
         order_to_cancel.update({"order_id": order_id});
         r = send(encrypt(order_to_cancel, config), "cancelorder", config)
         report(r, exchange.lower(), response)
-    print_report(response)
+    return(response)
 
 def requestBalance(exchange):
     config = getConfig()
@@ -252,7 +255,7 @@ def requestBalance(exchange):
         creds = getCreds(exchange)
         r = send(encrypt(creds, config), "balance", config)
         report(r, exchange.lower(), response)
-    print_report(response)
+    return(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def balance(name, exchange):
@@ -275,8 +278,9 @@ def ticker(name, exchange):
     request(exchange, 'ticker')
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
-def orderbook(name, exchange):
-    request(exchange, 'orderbook')
+def orderbook(name, exchange, base_currency, quote_currency):
+    data={'exchange':exchange,'base_currency':base_currency,'quote_currency':quote_currency}
+    request(data, 'orderbook')
 
 def jsonendpoint(name):
     request(exchanqe, 'json')
