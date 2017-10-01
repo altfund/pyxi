@@ -88,7 +88,7 @@ def decrypt( payload):
         init_vector = payload['iv']
         encrypted_data = payload['encrypted_data']
         init_vector = base64.b64decode(init_vector)
-        encrypted_data = base65.b64decode(encrypted_data)
+        encrypted_data = base64.b64decode(encrypted_data)
         encryption_suite = AES.new(config['aes_key'], AES.MODE_CFB, init_vector)
 
         plain_text = encryption_suite.decrypt(encrypted_data)
@@ -142,8 +142,9 @@ def getCreds( exchange):
 def getConfig():
     config = configparser.ConfigParser()
     config.read('config')
-    cfg = { "xi_url": os.environ.get("XI_URL", config["settings"]['xi_url']),
-            "aes_key": os.environ.get("AES_KEY", config["settings"]['aes_key'])}
+    cfg = { "xi_url": os.environ.get("XI_URL", 'http://localhost:9000'), #config["settings"]['xi_url']
+            "aes_key": os.environ.get("AES_KEY", None) #config["settings"]['aes_key']
+            }
     return cfg
 
 def requestExchange( exchange, method):
