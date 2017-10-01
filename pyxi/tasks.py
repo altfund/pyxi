@@ -2,7 +2,6 @@
 
 import json
 import re
-import requests
 import random
 import base64
 import string
@@ -11,6 +10,8 @@ import configparser
 
 from Crypto.Cipher import AES
 from invoke import task
+from pyxi import directRequest
+from pyxi import requestAggregateOrderBooks
 from pyxi import requestBalance
 from pyxi import requestTradeHistory
 from pyxi import requestOpenOrders
@@ -84,9 +85,10 @@ def currency(name, exchange):
 def cancelorder(name, exchange, order_id):
     cancelLimitOrder(exchange, order_id)
 
-@task
-def errorendpoint(name, exchange):
-    request(exchange, 'error')
+@task(help={"quote": "give -q symbol of quote currency", "base": "give -b symbol of base currency", 'exchange': "give -e comma separated list of exchanges, no spaces "})
+def aggregateorderbooks(name, base, quote, exchanges):
+    exchanges_arr = exchanges.split(',');
+    requestAggregateOrderBooks(base, quote, exchanges_arr)
 
 @task
 def ls(name):
