@@ -142,8 +142,8 @@ def getCreds( exchange):
 def getConfig():
     config = configparser.ConfigParser()
     config.read('config')
-    cfg = { "xi_url": config["settings"]['xi_url'],
-            "aes_key": config["settings"]['aes_key']}
+    cfg = { "xi_url": os.environ.get("XI_URL", config["settings"]['xi_url']),
+            "aes_key": os.environ.get("AES_KEY", config["settings"]['aes_key'])}
     return cfg
 
 def requestExchange( exchange, method):
