@@ -14,64 +14,9 @@ from invoke import task
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
-exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX', 'HUOBI', 'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS', 'JUBI', 'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE', 'CHBTC', 'CEXIO', 'CCEX', 'CAMPBX', 'BTER', 'BTCTRADE', 'BTCMARKETS', 'BTCE', 'BTCC', 'BTC38', 'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
-default_limit_ask = {"order_type":"ASK","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.1","price":"10000","test":False}}
-default_limit_bid = {"order_type":"BID","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.01","price":"0.0001","test": False}}
-
-def print_exchange_results(response, failure):
-    failures = []
-    for exchange in exchanges:
-        if exchange.upper() + "ret" in response:
-            print("+++++++++++++++++++++++++++++")
-            print(exchange.upper())
-            print("~~~~~~~~~~~~~~~~")
-            print(response.get(exchange.upper()))
-            if response.get(exchange.upper() + "ret"):
-                print("SUCCESS")
-                print(len(response.get(exchange.upper())))
-            else:
-                failures.append(exchange.upper())
-                print("FAILURE")
-            print("+++++++++++++++++++++++++++++")
-    return failures
-
-
-def print_report( response, dump=True):
-    if dump:
-        print("==============================================================")
-        print("DUMP")
-        print("==============================================================")
-        print(response)
-        print("==============================================================")
-        print("END DUMP")
-        print("==============================================================")
-        print("")
-        print("")
-
-    print("==============================================================")
-    print("START INDIVIDUAL EXCHANGES")
-    print("==============================================================")
-    if ('error' in response):
-        failures = print_exchange_results(response, True)
-        print("==============================================================")
-        print("FAILURE(S): ", len(failures)/len(exchanges)*100,"%, :: ", len(failures),"/", len(exchanges))
-        print(failures)
-        print("==============================================================")
-    else:
-        print_exchange_results(response, False)
-        print("==============================================================")
-        print("SUCCESS")
-        print("==============================================================")
-
-def report( data, exchange, response):
-    data = decrypt(data)
-    if (data == None or 'ERROR' in data or 'exception' in data or 'error' in data or re.match(r'.*error.*', data.lower()) or re.match(r'.*redacted.*', data.lower()) or len(data) < 3):
-        response.update({"error": True})
-        response.update({exchange.upper(): data})
-        response.update({exchange.upper() + "ret": False})
-    else:
-        response.update({exchange.upper(): data})
-        response.update({exchange.upper() + "ret": True})
+exchanges = ['ALL', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX', 'HUOBI', 'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS', 'JUBI', 'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE', 'CHBTC', 'CEXIO', 'CCEX', 'CAMPBX', 'BTER', 'BTCTRADE', 'BTCMARKETS', 'BTCE', 'BTCC', 'BTC38', 'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
+default_limit_ask = {"order_type":"ASK","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.1","price":"10000","test":True}}
+default_limit_bid = {"order_type":"BID","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.01","price":"0.0001","test": True}}
 
 def send( data, method, config, json=False):
     if json:
@@ -80,21 +25,21 @@ def send( data, method, config, json=False):
         r = requests.get(config.get('xi_url') + "/" + method, params=data).text
     return r
 
-def decrypt( payload):
+def decrypt(payload):
     config = getConfig()
     payload = json.loads(payload)
     plain_text = ""
-    try:
-        init_vector = payload['iv']
-        encrypted_data = payload['encrypted_data']
-        init_vector = base64.b64decode(init_vector)
-        encrypted_data = base64.b64decode(encrypted_data)
-        encryption_suite = AES.new(config['aes_key'], AES.MODE_CFB, init_vector)
+#    try:
+    init_vector = payload['iv']
+    encrypted_data = payload['encrypted_data']
+    init_vector = base64.b64decode(init_vector)
+    encrypted_data = base64.b64decode(encrypted_data)
+    encryption_suite = AES.new(config['aes_key'], AES.MODE_CFB, init_vector)
 
-        plain_text = encryption_suite.decrypt(encrypted_data)
-        plain_text = plain_text.decode('utf-8')
-    except:
-        plain_text = json.dumps(payload)
+    plain_text = encryption_suite.decrypt(encrypted_data).decode('utf-8')
+    #plain_text = plain_text.decode('utf-8')
+    #except:
+    #    plain_text = json.dumps(payload)
 
     return plain_text
 
@@ -154,44 +99,60 @@ def requestExchange( exchange, method):
         for an_exchange in exchanges:
             data = {"exchange": an_exchange.lower()}
             r = send(data, method, config)
-            report(r, an_exchange.lower(), response)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
     else:
         data = {"exchange": exchange.lower()}
         r = send(data, method, config)
-        report(r, exchange.lower(), response)
-    print_report(response)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
 
 def directRequest( method, data=None):
     response = {}
     config = getConfig()
     r = send(data, method, config, True)
-    print(r)
+    data = decrypt(r)
+    response.update({method: data})
+    return response
 
 def request( method, data=None):
     config = getConfig()
-    #response = decrypt(send(data, method, config))
     response = {}
     if data['exchange'].lower() == 'all':
         for an_exchange in exchanges:
             data.update({"exchange": an_exchange.lower()})
-            r = decrypt(send(data, method, config))
-            report(r, an_exchange.lower(), response)
+            r = send(data, method, config)
+            data = decrypt(r)
+            response.update({an_exchange.upper(): data})
     else:
         r = send(data, method, config)
-        report(r, data['exchange'].lower(), response)
-        print_report(response, False)
+        data = decrypt(r)
+        response.update({data['exchange'].upper(): data})
+    return response
 
-        #return(response)
+def requestOrderBook(method, exchange, base, quote):
+    config = getConfig()
+    response = {}
+    if exchange.lower() == 'all':
+        for an_exchange in exchanges:
+            data = {'exchange':an_exchange,'base_currency':base,'quote_currency':quote}
+            r = send(encrypt(data, config), method, config)
+            data = decrypt(r)
+            response.update({an_exchange.upper(): data})
+    else:
+        data = {'exchange':exchange,'base_currency':base,'quote_currency':quote}
+        r = send(encrypt(data, config), method, config)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
 
-def requestLimitOrder( exchange, ordertype):
+def requestLimitOrder( exchange, limitorder, ordertype):
     order = ""
-    limitorder = ""
     if ordertype.lower() == 'ask':
         order = 'ask'
-        limitorder = default_limit_ask
     elif ordertype.lower() == 'bid':
         order = 'bid'
-        limitorder = default_limit_bid
     else:
         order = ""
 
@@ -205,41 +166,38 @@ def requestLimitOrder( exchange, ordertype):
                 creds = getCreds(exchange)
                 limitorder.update({"exchange_credentials":creds})
                 r = send(encrypt(limitorder, config), "limitorder", config)
-                report(r, exchange.lower(), response)
+                data = decrypt(r)
+                response.update({exchange.upper(): data})
         else:
             creds = getCreds(exchange)
             limitorder.update({"exchange_credentials":creds})
             r = send(encrypt(limitorder, config), "limitorder", config)
-            report(r, exchange.lower(), response)
-    print_report(response)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    return response
 
 def requestOpenOrders( exchange):
     config = getConfig()
     response = {}
     temp = {}
-    #orders_req = {}
-    #temp.update({"base_currency": "ETH"})
-    #temp.update({"quote_currency": "BTC"})
-    #orders_req.update({"open_order_params": temp})
     if exchange.lower() == 'all':
         for exchange in exchanges:
             creds = getCreds(exchange)
-            #orders_req.update({"exchange_credentials": creds})
             r = send(encrypt(creds, config), "openorders", config)
-            report(r, exchange.lower(), response)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
     else:
         creds = getCreds(exchange)
-        #orders_req.update({"exchange_credentials": creds})
         r = send(encrypt(creds, config), "openorders", config)
-        report(r, exchange.lower(), response)
-    print_report(response)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
 
 def requestTradeHistory( exchange):
     config = getConfig()
     response = {}
     temp = {}
     history_req = {}
-    #temp.update({"currency_pair": "ETH/BTC"})
     temp.update({"page_length": "10"});
     history_req.update({"trade_params": temp});
     if exchange.lower() == 'all':
@@ -247,13 +205,15 @@ def requestTradeHistory( exchange):
             creds = getCreds(exchange)
             history_req.update({"exchange_credentials": creds});
             r = send(encrypt(history_req, config), "tradehistory", config)
-            report(r, exchange.lower(), response)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
     else:
         creds = getCreds(exchange)
         history_req.update({"exchange_credentials": creds});
         r = send(encrypt(history_req, config), "tradehistory", config)
-        report(r, exchange.lower(), response)
-    print_report(response)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
 
 def cancelLimitOrder( exchange, order_id):
     config = getConfig()
@@ -265,14 +225,16 @@ def cancelLimitOrder( exchange, order_id):
             order_to_cancel.update({"exchange_credentials": creds});
             order_to_cancel.update({"order_id": order_id});
             r = send(encrypt(order_to_cancel, config), "cancelorder", config)
-            report(r, exchange.lower(), response)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
     else:
         creds = getCreds(exchange)
         order_to_cancel.update({"exchange_credentials": creds});
         order_to_cancel.update({"order_id": order_id});
         r = send(encrypt(order_to_cancel, config), "cancelorder", config)
-        report(r, exchange.lower(), response)
-    print_report(response)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
 
 def requestBalance(exchange):
     config = getConfig()
@@ -281,19 +243,21 @@ def requestBalance(exchange):
         for exchange in exchanges:
             creds = getCreds(exchange)
             r = send(encrypt(creds, config), "balance", config)
-            report(r, exchange.lower(), response)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
     else:
         creds = getCreds(exchange)
         r = send(encrypt(creds, config), "balance", config)
-        #r = BalanceEndpoint.getBalance(creds)
-        report(r, exchange.lower(), response)
-    print_report(response)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
 
 def requestAggregateOrderBooks(base, quote, exchanges):
     data = {'base_currency':base,'quote_currency':quote,'exchanges':exchanges}
     config = getConfig()
     response = {}
     r = send(encrypt(data, config), "aggregateorderbooks", config, True)
-    #r = BalanceEndpoint.getBalance(creds)
-    report(r, "AGGREGATE ORDER BOOKS", response)
-    print_report(response)
+    data = decrypt(r);
+    response.update({"aggregateorderbooks": data})
+    return response
+
