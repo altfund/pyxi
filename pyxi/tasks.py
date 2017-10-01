@@ -10,15 +10,15 @@ import configparser
 
 from Crypto.Cipher import AES
 from invoke import task
-from pyxi import directRequest
-from pyxi import requestAggregateOrderBooks
-from pyxi import requestBalance
-from pyxi import requestTradeHistory
-from pyxi import requestOpenOrders
-from pyxi import requestExchange
-from pyxi import request
-from pyxi import requestLimitOrder
-from pyxi import cancelLimitOrder
+from .pyxi import directRequest
+from .pyxi import requestAggregateOrderBooks
+from .pyxi import requestBalance
+from .pyxi import requestTradeHistory
+from .pyxi import requestOpenOrders
+from .pyxi import requestExchange
+from .pyxi import request
+from .pyxi import requestLimitOrder
+from .pyxi import cancelLimitOrder
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
