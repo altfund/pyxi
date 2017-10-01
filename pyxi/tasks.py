@@ -10,7 +10,7 @@ import configparser
 
 from Crypto.Cipher import AES
 from invoke import task
-from pyxi import directRequest
+from .pyxi import directRequest
 from pyxi import requestAggregateOrderBooks
 from pyxi import requestBalance
 from pyxi import requestTradeHistory
