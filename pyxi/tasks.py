@@ -20,6 +20,8 @@ from pyxi import request
 from pyxi import requestOrderBook
 from pyxi import requestLimitOrder
 from pyxi import cancelLimitOrder
+from pyxi import requestAvailableMarkets
+from pyxi import requestInterExchangeArbitrage
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
@@ -117,9 +119,39 @@ def jsonendpoint(name):
 
 @task(help={'exchange': "-e name of EXCHANGE or all for all exchanges", "ordertype": "-o ASK or BID", "base_currency": "-b the base currency, e.g. BTC", "quote_currency": "-q the quote currency, e.g. ETH", "volume": "-v volume of base currency", "price": "-p price of quote currency", "test": "-t is test true/t runs in verify mode, or false/f runs in production mode" })
 def limitorder(name, exchange, ordertype, base, quote, volume, price, test):
-    limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":True}}
+    if (test.lower() == "true"):
+        test = True
+    else:
+        test = False
+    limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":test}}
     response = requestLimitOrder(exchange,limit_order, ordertype)
     report(response)
+
+@task(help={'exchange': "-e names of two exchanges for inter exchange arbitrage, comma separated list, no spaces, this applies to all parameters, order in each list to each paramter of this method  corresponsds to first or second order", "ordertype": "-o ASK or BID", "base_currency": "-b the base currency, e.g. BTC", "quote_currency": "-q the quote currency, e.g. ETH", "volume": "-v volume of base currency", "price": "-p price of quote currency", "test": "-t is test true/t runs in verify mode, or false/f runs in production mode" })
+def iea(name, exchange, ordertype, base, quote, volume, price, test):
+    exchange_arr = exchange.split(',');
+    ordertype_arr = ordertype.split(',');
+    base_arr = base.split(',');
+    quote_arr = quote.split(',');
+    volume_arr = volume.split(',');
+    price_arr = price.split(',');
+    test_arr = test.split(',');
+    orders = []
+
+    index = 0;
+    while (index < len(exchange_arr)):
+        test = True
+        if (test_arr[index].lower() == "true"):
+            test = True
+        else:
+            test = False
+
+        limit_order = {"order_type":ordertype_arr[index].upper(), "order_specs": {"base_currency":base_arr[index].upper(), "quote_currency":quote_arr[index].upper(), "volume":volume_arr[index], "price":price_arr[index], "test":test}}
+        order_on_exchange = {"exchange": exchange_arr[index],"order": limit_order}
+        orders.append(order_on_exchange)
+        index = index + 1
+
+    response = requestInterExchangeArbitrage(orders)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def currency(name, exchange):
@@ -136,6 +168,24 @@ def aggregateorderbooks(name, base, quote, exchanges):
     exchanges_arr = exchanges.split(',');
     response = requestAggregateOrderBooks(base, quote, exchanges_arr)
     report(response)
+
+@task(help={"exchanges": "give -e, comma separated list,i no spaces", "currencylists": "give -c comma separated list of forward slash separated list of currencies i.e. ETH/BTC/LTC,LTC/BTC/XRP/ETH. In this example, the user would have provided two exchanges and the first list of currencies separated by the forward slash would correspond to the fist exchange, and the second list of currencies separated by the forward slash (the list of currencies after the comma) would refer to the second exchange"})
+def availablemarkets(name, exchanges, currencylists):
+    exchanges_arr = exchanges.split(',');
+    currencies_arr = currencylists.split(',');
+    coe_list = []
+    if len(exchanges_arr) == len(currencies_arr):
+        count = 0
+        while (count < len(exchanges_arr)):
+            currency_on_exchange = {"exchange": exchanges_arr[count],
+                                  "currencies": currencies_arr[count].split('/')}
+            coe_list.append(currency_on_exchange)
+            count += 1
+        response = requestAvailableMarkets(coe_list)
+        report(response)
+    else:
+        print("Error must supply 1:1 relationship between requested exchanges and currencies")
+
 
 @task
 def ls(name):
