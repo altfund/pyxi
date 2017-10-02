@@ -20,6 +20,7 @@ from pyxi import request
 from pyxi import requestOrderBook
 from pyxi import requestLimitOrder
 from pyxi import cancelLimitOrder
+from pyxi import requestAvailableMarkets
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
@@ -136,6 +137,24 @@ def aggregateorderbooks(name, base, quote, exchanges):
     exchanges_arr = exchanges.split(',');
     response = requestAggregateOrderBooks(base, quote, exchanges_arr)
     report(response)
+
+@task(help={"exchanges": "give -e, comma separated list,i no spaces", "currencylists": "give -c comma separated list of forward slash separated list of currencies i.e. ETH/BTC/LTC,LTC/BTC/XRP/ETH. In this example, the user would have provided two exchanges and the first list of currencies separated by the forward slash would correspond to the fist exchange, and the second list of currencies separated by the forward slash (the list of currencies after the comma) would refer to the second exchange"})
+def availablemarkets(name, exchanges, currencylists):
+    exchanges_arr = exchanges.split(',');
+    currencies_arr = currencylists.split(',');
+    coe_list = []
+    if len(exchanges_arr) == len(currencies_arr):
+        count = 0
+        while (count < len(exchanges_arr)):
+            currency_on_exchange = {"exchange": exchanges_arr[count],
+                                  "currencies": currencies_arr[count].split('/')}
+            coe_list.append(currency_on_exchange)
+            count += 1
+        response = requestAvailableMarkets(coe_list)
+        report(response)
+    else:
+        print("Error must supply 1:1 relationship between requested exchanges and currencies")
+
 
 @task
 def ls(name):

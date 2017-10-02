@@ -260,3 +260,10 @@ def requestAggregateOrderBooks(base, quote, exchanges):
     response.update({"aggregateorderbooks": data})
     return response
 
+def requestAvailableMarkets(coe_list):
+    config = getConfig()
+    response = {}
+    r = send(encrypt(coe_list, config), "availablemarkets", config, False)
+    data = decrypt(r);
+    response.update({"availablemarkets": data})
+    return response
