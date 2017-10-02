@@ -64,7 +64,7 @@ def encrypt( data, config):
             "encrypted_data": base64_cipher_string}
     return encrypted_request
 
-def getCreds( exchange):
+def getCreds(exchange):
     exchange = exchange.upper()
     config = configparser.ConfigParser()
     config.read('config')
@@ -174,6 +174,26 @@ def requestLimitOrder( exchange, limitorder, ordertype):
             data = decrypt(r)
             response.update({exchange.upper(): data})
     return response
+
+def requestInterExchangeArbitrage(orders):
+    config = getConfig()
+    response = {}
+
+    index = 0
+    modified_orders = []
+
+    while (index < len(orders)):
+        exchange = orders[index]['exchange']
+        creds = getCreds(exchange)
+        orders[index]['order'].update({"exchange_credentials": creds})
+        modified_orders.append(orders[index]['order'])
+        index = index + 1
+
+    r = send(encrypt(modified_orders, config), "interexchangearbitrage", config)
+    data = decrypt(r)
+    response.update({"interexchangearbitrage": data})
+    return response
+
 
 def requestOpenOrders( exchange):
     config = getConfig()

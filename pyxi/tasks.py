@@ -21,6 +21,7 @@ from pyxi import requestOrderBook
 from pyxi import requestLimitOrder
 from pyxi import cancelLimitOrder
 from pyxi import requestAvailableMarkets
+from pyxi import requestInterExchangeArbitrage
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
@@ -118,9 +119,39 @@ def jsonendpoint(name):
 
 @task(help={'exchange': "-e name of EXCHANGE or all for all exchanges", "ordertype": "-o ASK or BID", "base_currency": "-b the base currency, e.g. BTC", "quote_currency": "-q the quote currency, e.g. ETH", "volume": "-v volume of base currency", "price": "-p price of quote currency", "test": "-t is test true/t runs in verify mode, or false/f runs in production mode" })
 def limitorder(name, exchange, ordertype, base, quote, volume, price, test):
-    limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":True}}
+    if (test.lower() == "true"):
+        test = True
+    else:
+        test = False
+    limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":test}}
     response = requestLimitOrder(exchange,limit_order, ordertype)
     report(response)
+
+@task(help={'exchange': "-e names of two exchanges for inter exchange arbitrage, comma separated list, no spaces, this applies to all parameters, order in each list to each paramter of this method  corresponsds to first or second order", "ordertype": "-o ASK or BID", "base_currency": "-b the base currency, e.g. BTC", "quote_currency": "-q the quote currency, e.g. ETH", "volume": "-v volume of base currency", "price": "-p price of quote currency", "test": "-t is test true/t runs in verify mode, or false/f runs in production mode" })
+def iea(name, exchange, ordertype, base, quote, volume, price, test):
+    exchange_arr = exchange.split(',');
+    ordertype_arr = ordertype.split(',');
+    base_arr = base.split(',');
+    quote_arr = quote.split(',');
+    volume_arr = volume.split(',');
+    price_arr = price.split(',');
+    test_arr = test.split(',');
+    orders = []
+
+    index = 0;
+    while (index < len(exchange_arr)):
+        test = True
+        if (test_arr[index].lower() == "true"):
+            test = True
+        else:
+            test = False
+
+        limit_order = {"order_type":ordertype_arr[index].upper(), "order_specs": {"base_currency":base_arr[index].upper(), "quote_currency":quote_arr[index].upper(), "volume":volume_arr[index], "price":price_arr[index], "test":test}}
+        order_on_exchange = {"exchange": exchange_arr[index],"order": limit_order}
+        orders.append(order_on_exchange)
+        index = index + 1
+
+    response = requestInterExchangeArbitrage(orders)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def currency(name, exchange):
