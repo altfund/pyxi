@@ -180,6 +180,25 @@ def requestLimitOrder( exchange, limitorder, ordertype):
             response.update({exchange.upper(): data})
     return response
 
+def requestFillOrKill(orders):
+    config = getConfig()
+    response = {}
+
+    index = 0
+    modified_orders = []
+
+    while (index < len(orders)):
+        exchange = orders[index]['exchange']
+        creds = getCreds(exchange)
+        orders[index]['order'].update({"exchange_credentials": creds})
+        modified_orders.append(orders[index]['order'])
+        index = index + 1
+
+    r = send(encrypt(modified_orders, config), "fillorkill", config)
+    data = decrypt(r)
+    response.update({"fillorkill": data})
+    return response
+
 def requestInterExchangeArbitrage(orders):
     config = getConfig()
     response = {}
