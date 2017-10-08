@@ -190,6 +190,12 @@ def cancelorder(name, exchange, order_id):
     response = cancelLimitOrder(exchange, order_id)
     report(response)
 
+@task(help={"exchange": "give -e the exchange ", "orders": "give -o comma separated list (no spaced) or order ids"})
+def getorders(name, exchange, orders):
+    orders_arr = orders.split(',');
+    response = requestOrders(exchange, orders_arr)
+    report(response)
+
 @task(help={"quote": "give -q symbol of quote currency", "base": "give -b symbol of base currency", 'exchange': "give -e comma separated list of exchanges, no spaces "})
 def aggregateorderbooks(name, base, quote, exchanges):
     exchanges_arr = exchanges.split(',');

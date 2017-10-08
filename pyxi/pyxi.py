@@ -295,6 +295,16 @@ def requestBalance(exchange):
         response.update({exchange.upper(): data})
     return response
 
+def requestOrders(exchange, orders):
+    creds = getCreds(exchange)
+    data = {'exchange_credentials':creds,'order_ids':orders}
+    config = getConfig()
+    response = {}
+    r = send(encrypt(data, config), "getorders", config, False)
+    data = decrypt(r);
+    response.update({"getorders": data})
+    return response
+
 def requestAggregateOrderBooks(base, quote, exchanges):
     data = {'base_currency':base,'quote_currency':quote,'exchanges':exchanges}
     config = getConfig()
