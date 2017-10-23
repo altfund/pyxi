@@ -180,7 +180,7 @@ def requestLimitOrder( exchange, limitorder, ordertype):
             response.update({exchange.upper(): data})
     return response
 
-def requestFillOrKill(orders, external_creds=None):
+def requestFillOrKill(orders):
     config = getConfig()
     response = {}
 
@@ -189,11 +189,10 @@ def requestFillOrKill(orders, external_creds=None):
 
     while (index < len(orders)):
         exchange = orders[index]['exchange']
-        if (external_creds==None):
+        if not orders[index]['order'].get('exchange_credentials'):
             creds = getCreds(exchange)
             orders[index]['order'].update({"exchange_credentials": creds})
-        else:
-            orders[index]['order'].update({"exchange_credentials": external_creds})
+
         modified_orders.append(orders[index]['order'])
         index = index + 1
 
