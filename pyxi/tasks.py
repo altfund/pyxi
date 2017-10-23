@@ -181,6 +181,12 @@ def iea(name, exchange, ordertype, base, quote, volume, price, test):
     response = requestInterExchangeArbitrage(orders)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
+def isfeasible(name, exchange):
+    response = requestExchange(exchange, 'isfeasible')
+    report(response)
+
+
+@task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def currency(name, exchange):
     response = requestExchange(exchange, 'currency')
     report(response)
