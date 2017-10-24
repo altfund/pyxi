@@ -188,12 +188,12 @@ def requestFillOrKill(orders):
     modified_orders = []
 
     while (index < len(orders)):
-        exchange = orders[index]['exchange']
-        if not orders[index]['order'].get('exchange_credentials'):
+        if not orders[index].get('exchange_credentials'):
+            exchange = orders[index]['exchange']
             creds = getCreds(exchange)
-            orders[index]['order'].update({"exchange_credentials": creds})
+            orders[index].update({"exchange_credentials": creds})
 
-        modified_orders.append(orders[index]['order'])
+        modified_orders.append(orders[index])
         index = index + 1
 
     r = send(encrypt(modified_orders, config), "fillorkill", config)
