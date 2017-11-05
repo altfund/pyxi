@@ -239,6 +239,18 @@ def requestOpenOrders( exchange):
         response.update({exchange.upper(): data})
     return response
 
+def requestAmTradeHistroy(exchange):
+    config = getConfig()
+    response = {}
+    if not exchange.get('trade_params'):
+        temp = {}
+        temp.update({"page_length": "10"})
+        exchange.update({"trade_params": temp})
+
+    r = send(encrypt(exchange, config), "tradehistory", config)
+    data = decrypt(r)
+    return data
+
 def requestTradeHistory( exchange):
     config = getConfig()
     response = {}
