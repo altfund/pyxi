@@ -179,7 +179,7 @@ def requestLimitOrder( exchange, limitorder, ordertype):
         response.update({exchange.upper(): data})
     return response
 
-def requestFillOrKill(orders, external_creds=None):
+def requestFillOrKill(orders):
     config = getConfig()
     response = {}
 
@@ -187,13 +187,12 @@ def requestFillOrKill(orders, external_creds=None):
     modified_orders = []
 
     while (index < len(orders)):
-        exchange = orders[index]['exchange']
-        if (external_creds==None):
+        if not orders[index].get('exchange_credentials'):
+            exchange = orders[index]['exchange']
             creds = getCreds(exchange)
-            orders[index]['order'].update({"exchange_credentials": creds})
-        else:
-            orders[index]['order'].update({"exchange_credentials": external_creds})
-        modified_orders.append(orders[index]['order'])
+            orders[index].update({"exchange_credentials": creds})
+
+        modified_orders.append(orders[index])
         index = index + 1
 
     r = send(encrypt(modified_orders, config), "fillorkill", config)
@@ -236,6 +235,28 @@ def requestOpenOrders( exchange):
     else:
         creds = getCreds(exchange)
         r = send(encrypt(creds, config), "openorders", config)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
+    return response
+
+def requestFundingHistory( exchange, method="fundinghistory"):
+    config = getConfig()
+    response = {}
+    temp = {}
+    history_req = {}
+    temp.update({"page_length": "10"});
+    history_req.update({"trade_params": temp});
+    if exchange.lower() == 'all':
+        for exchange in exchanges:
+            creds = getCreds(exchange)
+            history_req.update({"exchange_credentials": creds});
+            r = send(encrypt(history_req, config), method, config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    else:
+        creds = getCreds(exchange)
+        history_req.update({"exchange_credentials": creds});
+        r = send(encrypt(history_req, config), method, config)
         data = decrypt(r)
         response.update({exchange.upper(): data})
     return response
