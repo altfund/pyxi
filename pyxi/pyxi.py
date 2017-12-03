@@ -273,6 +273,19 @@ def requestAmTradeHistroy(exchange):
     data = decrypt(r)
     return data
 
+def requestAmFundingHistroy(exchange):
+    print('calling funding history with', exchange)
+    config = getConfig()
+    response = {}
+    if not exchange.get('trade_params'):
+        temp = {}
+        temp.update({"page_length": "10"})
+        exchange.update({"trade_params": temp})
+
+    r = send(encrypt(exchange, config), "fundinghistory", config)
+    data = decrypt(r)
+    return data
+
 
 def requestTradeHistory( exchange, method="tradehistory"):
     config = getConfig()
