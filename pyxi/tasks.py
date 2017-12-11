@@ -24,6 +24,8 @@ from .pyxi import requestAvailableMarkets
 from .pyxi import requestInterExchangeArbitrage
 from .pyxi import requestFillOrKill
 from .pyxi import requestOrders
+from .pyxi import requestAmTradeHistroy
+from .pyxi import requestFundingHistory
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
@@ -123,8 +125,10 @@ def tradehistory(name, exchange):
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def fundinghistory(name, exchange):
-    response = requestTradeHistory(exchange, "fundinghistory")
-    report(response)
+    exchange_creds = getCreds(exchange)
+    exchange = {"exchange_credentials": exchange_creds};
+    response = requestFundingHistory(exchange, "fundinghistory")
+    print(json.loads(response))
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def openorders(name, exchange):
@@ -132,9 +136,9 @@ def openorders(name, exchange):
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
-def tradefees(name, exchange):
-    response = requestExchange(exchange, 'tradefees')
-    report(response)
+def symbolmetadata(name, exchange):
+    response = requestExchange(exchange, 'exchangesymbolsmetadata' )
+    print(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def ticker(name, exchange):

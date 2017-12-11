@@ -98,7 +98,7 @@ def getConfig():
         cfg['xi_url'] = config["settings"]['xi_url']
     return cfg
 
-def requestExchange( exchange, method):
+def requestExchange(exchange, method, encrypted=True):
     config = getConfig()
     response = {}
     if exchange.lower() == 'all':
@@ -109,8 +109,11 @@ def requestExchange( exchange, method):
             response.update({exchange.upper(): data})
     else:
         data = {"exchange": exchange.lower()}
-        r = send(data, method, config)
-        data = decrypt(r)
+        data = send(data, method, config)
+
+        if encrypted == True:
+            data = decrypt(data)
+
         response.update({exchange.upper(): data})
     return response
 
@@ -247,7 +250,13 @@ def requestFundingHistory( exchange, method="fundinghistory"):
     history_req = {}
     temp.update({"page_length": "10"});
     history_req.update({"trade_params": temp});
-    if exchange.lower() == 'all':
+
+    if isinstance(exchange,dict):
+        exchange_name = exchange['exchange_credentials']['exchange']
+    else:
+        exchange_name = exchange
+
+    if exchange_name.lower() == 'all':
         for exchange in exchanges:
             creds = getCreds(exchange)
             history_req.update({"exchange_credentials": creds});
@@ -255,11 +264,11 @@ def requestFundingHistory( exchange, method="fundinghistory"):
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
-        creds = getCreds(exchange)
-        history_req.update({"exchange_credentials": creds});
-        r = send(encrypt(history_req, config), method, config)
+        #creds = getCreds(exchange)
+        r = send(encrypt(exchange, config), method, config)
         data = decrypt(r)
-        response.update({exchange.upper(): data})
+        #response.update({exchange.upper(): data})
+        response = data
     return response
 
 def requestAmTradeHistroy(exchange):
