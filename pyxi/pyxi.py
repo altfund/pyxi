@@ -14,7 +14,9 @@ from invoke import task
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
-exchanges = ['ALL', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX', 'HUOBI', 'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS', 'JUBI', 'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE', 'CHBTC', 'CEXIO', 'CCEX', 'CAMPBX', 'BTER', 'BTCTRADE', 'BTCMARKETS', 'BTCE', 'BTCC', 'BTC38', 'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
+deprecated_exchanged = ['BTC38', 'BTCE', 'HUOBI','JUBI', 'CHBTC', 'BTER']
+exchanges = ['ALL', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX',  'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS',  'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE',  'CEXIO', 'CCEX', 'CAMPBX',  'BTCTRADE', 'BTCMARKETS',  'BTCC',  'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
+#exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
 default_limit_ask = {"order_type":"ASK","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.1","price":"10000","test":True}}
 default_limit_bid = {"order_type":"BID","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.01","price":"0.0001","test": True}}
 
@@ -96,7 +98,7 @@ def getConfig():
         cfg['xi_url'] = config["settings"]['xi_url']
     return cfg
 
-def requestExchange( exchange, method):
+def requestExchange(exchange, method, encrypted=True):
     config = getConfig()
     response = {}
     if exchange.lower() == 'all':
@@ -107,8 +109,11 @@ def requestExchange( exchange, method):
             response.update({exchange.upper(): data})
     else:
         data = {"exchange": exchange.lower()}
-        r = send(data, method, config)
-        data = decrypt(r)
+        data = send(data, method, config)
+
+        if encrypted == True:
+            data = decrypt(data)
+
         response.update({exchange.upper(): data})
     return response
 
@@ -165,19 +170,17 @@ def requestLimitOrder( exchange, limitorder, ordertype):
     else:
         config = getConfig()
         response = {}
-        if exchange.lower() == 'all':
-            for exchange in exchanges:
-                creds = getCreds(exchange)
-                limitorder.update({"exchange_credentials":creds})
-                r = send(encrypt(limitorder, config), "limitorder", config)
-                data = decrypt(r)
-                response.update({exchange.upper(): data})
-        else:
-            creds = getCreds(exchange)
-            limitorder.update({"exchange_credentials":creds})
-            r = send(encrypt(limitorder, config), "limitorder", config)
-            data = decrypt(r)
-            response.update({exchange.upper(): data})
+        #if exchange.lower() == 'all':
+        #    for exchange in exchanges:
+        #        creds = getCreds(exchange)
+        #        limitorder.update({"exchange_credentials":creds})
+        #        r = send(encrypt(limitorder, config), "limitorder", config)
+        #       data = decrypt(r)
+        #       response.update({exchange.upper(): data})
+        #else:
+        r = send(encrypt(limitorder, config), "limitorder", config)
+        data = decrypt(r)
+        response.update({exchange.upper(): data})
     return response
 
 def requestFillOrKill(orders):
@@ -201,22 +204,23 @@ def requestFillOrKill(orders):
     response.update({"fillorkill": data})
     return response
 
-def requestInterExchangeArbitrage(orders):
+def requestInterExchangeArbitrage(orders, external_creds=None):
     config = getConfig()
     response = {}
 
     index = 0
     modified_orders = []
 
-    while (index < len(orders)):
-        if not orders[index]['order'].get("exchange_credentials"):
+    if (external_creds==None):
+        while (index < len(orders)):
             exchange = orders[index]['exchange']
             creds = getCreds(exchange)
             orders[index]['order'].update({"exchange_credentials": creds})
-        modified_orders.append(orders[index]['order'])
-        index = index + 1
+            modified_orders.append(orders[index]['order'])
+            index = index + 1
+            r = send(encrypt(modified_orders, config), "interexchangearbitrage", config)
 
-    r = send(encrypt(modified_orders, config), "interexchangearbitrage", config)
+    r = send(encrypt(orders, config), "interexchangearbitrage", config)
     data = decrypt(r)
     response.update({"interexchangearbitrage": data})
     return response
@@ -239,6 +243,34 @@ def requestOpenOrders( exchange):
         response.update({exchange.upper(): data})
     return response
 
+def requestFundingHistory( exchange, method="fundinghistory"):
+    config = getConfig()
+    response = {}
+    temp = {}
+    history_req = {}
+    temp.update({"page_length": "10"});
+    history_req.update({"trade_params": temp});
+
+    if isinstance(exchange,dict):
+        exchange_name = exchange['exchange_credentials']['exchange']
+    else:
+        exchange_name = exchange
+
+    if exchange_name.lower() == 'all':
+        for exchange in exchanges:
+            creds = getCreds(exchange)
+            history_req.update({"exchange_credentials": creds});
+            r = send(encrypt(history_req, config), method, config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    else:
+        #creds = getCreds(exchange)
+        r = send(encrypt(exchange, config), method, config)
+        data = decrypt(r)
+        #response.update({exchange.upper(): data})
+        response = data
+    return response
+
 def requestAmTradeHistroy(exchange):
     config = getConfig()
     response = {}
@@ -251,7 +283,21 @@ def requestAmTradeHistroy(exchange):
     data = decrypt(r)
     return data
 
-def requestTradeHistory( exchange):
+def requestAmFundingHistroy(exchange):
+    print('calling funding history with', exchange)
+    config = getConfig()
+    response = {}
+    if not exchange.get('trade_params'):
+        temp = {}
+        temp.update({"page_length": "10"})
+        exchange.update({"trade_params": temp})
+
+    r = send(encrypt(exchange, config), "fundinghistory", config)
+    data = decrypt(r)
+    return data
+
+
+def requestTradeHistory( exchange, method="tradehistory"):
     config = getConfig()
     response = {}
     temp = {}
@@ -262,13 +308,13 @@ def requestTradeHistory( exchange):
         for exchange in exchanges:
             creds = getCreds(exchange)
             history_req.update({"exchange_credentials": creds});
-            r = send(encrypt(history_req, config), "tradehistory", config)
+            r = send(encrypt(history_req, config), method, config)
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
         creds = getCreds(exchange)
         history_req.update({"exchange_credentials": creds});
-        r = send(encrypt(history_req, config), "tradehistory", config)
+        r = send(encrypt(history_req, config), method, config)
         data = decrypt(r)
         response.update({exchange.upper(): data})
     return response

@@ -1,11 +1,11 @@
 from setuptools import setup
 
 setup(name='pyxi',
-      version='0.1',
+      version='0.2',
       description='Python wrapper for xchange-interface API',
       url='http://github.com/altfund/pyxi',
-      author='Eric Scheier',
-      author_email='eric@altfund.org',
+      author='Altfund Capital',
+      author_email='altfund@altfund.org',
       license='MIT',
       packages=['pyxi'],
       install_requires=[

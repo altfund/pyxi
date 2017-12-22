@@ -23,12 +23,36 @@ from .pyxi import cancelLimitOrder
 from .pyxi import requestAvailableMarkets
 from .pyxi import requestInterExchangeArbitrage
 from .pyxi import requestFillOrKill
+from .pyxi import requestOrders
+from .pyxi import requestAmTradeHistroy
+from .pyxi import requestFundingHistory
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
-exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
+#exchanges = ['KRAKEN', 'BITFINEX', 'POLONIEX', 'GDAX', 'TRUEFX']
+exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX', 'HUOBI', 'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS', 'JUBI', 'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE', 'CHBTC', 'CEXIO', 'CCEX', 'CAMPBX', 'BTER', 'BTCTRADE', 'BTCMARKETS', 'BTCE', 'BTCC', 'BTC38', 'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
 default_limit_ask = {"order_type":"ASK","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.1","price":"10000","test":True}}
 default_limit_bid = {"order_type":"BID","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.01","price":"0.0001","test": True}}
+
+def getCreds(exchange):
+    exchange = exchange.upper()
+    config = configparser.ConfigParser()
+    config.read('config')
+    try:
+        creds = {
+                "exchange": exchange.lower(),
+                "key": config[exchange]['key'],
+                "secret": config[exchange]['secret']
+                }
+    except:
+        raise ValueError('exchange ' + exchange.lower() + ' does not have credentials')
+
+    try:
+        passphrase = config[exchange]['passphrase']
+        creds.update({"passphrase":  passphrase})
+        return creds
+    except:
+        return creds
 
 def report(data, dump=False):
     for key, value in data.items():
@@ -90,9 +114,21 @@ def balance(name, exchange):
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
+def symbols(name, exchange):
+    response = requestExchange(exchange, 'exchangesymbols')
+    report(response)
+
+@task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def tradehistory(name, exchange):
     response = requestTradeHistory(exchange)
     report(response)
+
+@task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
+def fundinghistory(name, exchange):
+    exchange_creds = getCreds(exchange)
+    exchange = {"exchange_credentials": exchange_creds};
+    response = requestFundingHistory(exchange, "fundinghistory")
+    print(json.loads(response))
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def openorders(name, exchange):
@@ -100,9 +136,9 @@ def openorders(name, exchange):
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
-def tradefees(name, exchange):
-    response = requestExchange(exchange, 'tradefees')
-    report(response)
+def symbolmetadata(name, exchange):
+    response = requestExchange(exchange, 'exchangesymbolsmetadata' )
+    print(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def ticker(name, exchange):
@@ -124,9 +160,20 @@ def limitorder(name, exchange, ordertype, base, quote, volume, price, test):
         test = True
     else:
         test = False
-    limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":test}}
-    response = requestLimitOrder(exchange,limit_order, ordertype)
-    report(response)
+
+    if exchange.lower() == 'all':
+        for exchange in exchanges:
+            limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":test}}
+            creds = getCreds(exchange)
+            limit_order.update({"exchange_credentials":creds})
+            response = requestLimitOrder(exchange,limit_order, ordertype)
+            report(response)
+    else:
+        limit_order = {"order_type":ordertype.upper(),"order_specs":{"base_currency":base.upper(),"quote_currency":quote.upper(),"volume":volume,"price":price,"test":test}}
+        creds = getCreds(exchange)
+        limit_order.update({"exchange_credentials":creds})
+        response = requestLimitOrder(exchange,limit_order, ordertype)
+        report(response)
 
 @task(help={'exchange': "-e names of two exchanges for inter exchange arbitrage, comma separated list, no spaces, this applies to all parameters, order in each list to each paramter of this method  corresponsds to first or second order", "ordertype": "-o ASK or BID", "base_currency": "-b the base currency, e.g. BTC", "quote_currency": "-q the quote currency, e.g. ETH", "volume": "-v volume of base currency", "price": "-p price of quote currency", "test": "-t is test true/t runs in verify mode, or false/f runs in production mode" })
 def fillorkill(name, exchange, ordertype, base, quote, volume, price, test):
@@ -153,6 +200,7 @@ def fillorkill(name, exchange, ordertype, base, quote, volume, price, test):
         index = index + 1
 
     response = requestFillOrKill(orders)
+    print(response)
 
 @task(help={'exchange': "-e names of two exchanges for inter exchange arbitrage, comma separated list, no spaces, this applies to all parameters, order in each list to each paramter of this method  corresponsds to first or second order", "ordertype": "-o ASK or BID", "base_currency": "-b the base currency, e.g. BTC", "quote_currency": "-q the quote currency, e.g. ETH", "volume": "-v volume of base currency", "price": "-p price of quote currency", "test": "-t is test true/t runs in verify mode, or false/f runs in production mode" })
 def iea(name, exchange, ordertype, base, quote, volume, price, test):
@@ -205,6 +253,15 @@ def getorders(name, exchange, orders):
 @task(help={"quote": "give -q symbol of quote currency", "base": "give -b symbol of base currency", 'exchange': "give -e comma separated list of exchanges, no spaces "})
 def aggregateorderbooks(name, base, quote, exchanges):
     exchanges_arr = exchanges.split(',');
+    response = requestAggregateOrderBooks(base, quote, exchanges_arr)
+    report(response)
+
+@task(help={"quote": "give -q symbol of quote currency", "base": "give -b symbol of base currency", 'exchange': "give -e comma separated list of exchanges, no spaces "})
+def aggregateallorderbooks(name, base, quote):
+    #exchanges_arr = exchanges.split(',');
+    exchanges_arr = []
+    for x in exchanges:
+        exchanges_arr.append(x.lower())
     response = requestAggregateOrderBooks(base, quote, exchanges_arr)
     report(response)
 
