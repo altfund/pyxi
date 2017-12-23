@@ -340,6 +340,16 @@ def cancelLimitOrder( exchange, order_id):
         response.update({exchange.upper(): data})
     return response
 
+def amCancelLimitOrder(exchange_dict, order_id):
+    config = getConfig()
+    exchange_dict.update({"order_id": order_id});
+    r = send(encrypt(exchange_dict, config), "cancelorder", config)
+    data = decrypt(r)
+    if data == "true":
+        return True;
+    else:
+        return json.loads( data )
+
 def requestBalance(exchange):
     config = getConfig()
     response = {}

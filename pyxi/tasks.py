@@ -26,6 +26,7 @@ from .pyxi import requestFillOrKill
 from .pyxi import requestOrders
 from .pyxi import requestAmTradeHistroy
 from .pyxi import requestFundingHistory
+from .pyxi import amCancelLimitOrder
 
 #balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
