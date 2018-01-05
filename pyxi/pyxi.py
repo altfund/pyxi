@@ -226,22 +226,34 @@ def requestInterExchangeArbitrage(orders, external_creds=None):
     return response
 
 
-def requestOpenOrders( exchange):
+def requestOpenOrders(exchange):
     config = getConfig()
     response = {}
     temp = {}
-    if exchange.lower() == 'all':
+    history_req = {}
+    temp.update({"page_length": "10"})
+    history_req.update({"trade_params": temp})
+
+    if isinstance(exchange, dict):
+        exchange_name = exchange['exchange_credentials']['exchange']
+        exchange = exchange['exchange_credentials']
+    else:
+        exchange_name = exchange
+
+    if exchange_name.lower() == 'all':
         for exchange in exchanges:
             creds = getCreds(exchange)
             r = send(encrypt(creds, config), "openorders", config)
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
-        creds = getCreds(exchange)
-        r = send(encrypt(creds, config), "openorders", config)
+        # creds = getCreds(exchange)
+        r = send(encrypt(exchange, config), "openorders", config)
         data = decrypt(r)
-        response.update({exchange.upper(): data})
+        # response.update({exchange.upper(): data})
+        response = data
     return response
+
 
 def requestFundingHistory( exchange, method="fundinghistory"):
     config = getConfig()
