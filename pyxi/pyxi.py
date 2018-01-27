@@ -1,7 +1,6 @@
 #!/bin/python3
 
 import json
-import re
 import requests
 import random
 import base64
@@ -10,13 +9,14 @@ import os
 import configparser
 
 from Crypto.Cipher import AES
-from invoke import task
+from .ccxt_balance import CcxtClient
 
-#balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
+
+# balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
 deprecated_exchanged = ['BTC38', 'BTCE', 'HUOBI','JUBI', 'CHBTC', 'BTER']
 exchanges = ['ALL', 'BINANCE', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX',  'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS',  'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE',  'CEXIO', 'CCEX', 'CAMPBX',  'BTCTRADE', 'BTCMARKETS',  'BTCC',  'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
-#exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
+# exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
 default_limit_ask = {"order_type":"ASK","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.1","price":"10000","test":True}}
 default_limit_bid = {"order_type":"BID","order_specs":{"base_currency":"ETH","quote_currency":"BTC","volume":"0.01","price":"0.0001","test": True}}
 
@@ -31,7 +31,7 @@ def decrypt(payload):
     config = getConfig()
     payload = json.loads(payload)
     plain_text = ""
-#    try:
+    #    try:
     init_vector = payload['iv']
     encrypted_data = payload['encrypted_data']
     init_vector = base64.b64decode(init_vector)
@@ -156,7 +156,8 @@ def requestOrderBook(method, exchange, base, quote):
         response.update({exchange.upper(): data})
     return response
 
-def requestLimitOrder( exchange, limitorder, ordertype):
+
+def requestLimitOrder(exchange, limitorder, ordertype):
     order = ""
     if ordertype.lower() == 'ask':
         order = 'ask'
@@ -183,6 +184,7 @@ def requestLimitOrder( exchange, limitorder, ordertype):
         response.update({exchange.upper(): data})
     return response
 
+
 def requestFillOrKill(orders):
     config = getConfig()
     response = {}
@@ -204,6 +206,7 @@ def requestFillOrKill(orders):
     response.update({"fillorkill": data})
     return response
 
+
 def requestInterExchangeArbitrage(orders, external_creds=None):
     config = getConfig()
     response = {}
@@ -224,6 +227,43 @@ def requestInterExchangeArbitrage(orders, external_creds=None):
     data = decrypt(r)
     response.update({"interexchangearbitrage": data})
     return response
+
+
+def requestBalance(exchange):
+    config = getConfig()
+    response = {}
+
+    if isinstance(exchange, dict):
+        exchange_name = exchange['exchange_credentials']['exchange']
+        exchange = exchange['exchange_credentials']
+    else:
+        exchange_name = exchange
+
+    if exchange_name.lower() == 'all':
+        for exchange in exchanges:
+            creds = getCreds(exchange)
+            r = send(encrypt(creds, config), "balance", config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    else:
+        # creds = getCreds(exchange)
+        r = send(encrypt(exchange, config), "balance", config)
+        data = decrypt(r)
+        # response.update({exchange.upper(): data})
+        response = json.loads(data)
+    return response
+
+
+def requestExchangeAccountBalance(exchange):
+
+    response = {}
+    ccxtclient = CcxtClient(exchange)
+    status, response = ccxtclient.get_account_balance()
+    # Status Show Ccxt Exchange Class Exist or not
+    if not status:
+        return requestBalance(exchange)
+    else:
+        return response
 
 
 def requestOpenOrders(exchange):
@@ -283,6 +323,7 @@ def requestFundingHistory( exchange, method="fundinghistory"):
         response = data
     return response
 
+
 def requestAmTradeHistroy(exchange):
     config = getConfig()
     response = {}
@@ -294,6 +335,7 @@ def requestAmTradeHistroy(exchange):
     r = send(encrypt(exchange, config), "tradehistory", config)
     data = decrypt(r)
     return data
+
 
 def requestAmFundingHistroy(exchange):
     print('calling funding history with', exchange)
@@ -309,7 +351,7 @@ def requestAmFundingHistroy(exchange):
     return data
 
 
-def requestTradeHistory( exchange, method="tradehistory"):
+def requestTradeHistory(exchange, method="tradehistory"):
     config = getConfig()
     response = {}
     temp = {}
@@ -330,6 +372,7 @@ def requestTradeHistory( exchange, method="tradehistory"):
         data = decrypt(r)
         response.update({exchange.upper(): data})
     return response
+
 
 def cancelLimitOrder( exchange, order_id):
     config = getConfig()
@@ -352,6 +395,7 @@ def cancelLimitOrder( exchange, order_id):
         response.update({exchange.upper(): data})
     return response
 
+
 def amCancelLimitOrder(exchange_dict, order_id):
     config = getConfig()
     exchange_dict.update({"order_id": order_id});
@@ -360,23 +404,8 @@ def amCancelLimitOrder(exchange_dict, order_id):
     if data == "true":
         return True;
     else:
-        return json.loads( data )
+        return json.loads(data)
 
-def requestBalance(exchange):
-    config = getConfig()
-    response = {}
-    if exchange.lower() == 'all':
-        for exchange in exchanges:
-            creds = getCreds(exchange)
-            r = send(encrypt(creds, config), "balance", config)
-            data = decrypt(r)
-            response.update({exchange.upper(): data})
-    else:
-        creds = getCreds(exchange)
-        r = send(encrypt(creds, config), "balance", config)
-        data = decrypt(r)
-        response.update({exchange.upper(): data})
-    return response
 
 def requestOrders(exchange, orders):
     creds = getCreds(exchange)
