@@ -104,17 +104,24 @@ def getCreds(exchange):
         return creds
     except:
         return creds
-
-def getConfig():
+        
+def getSettings():
     config = configparser.ConfigParser()
     config.read('config')
-    cfg = { "xi_url": os.environ.get("XI_URL", None),
-            "aes_key": os.environ.get("AES_KEY", None)
-            }
-    if cfg['aes_key'] is None:
-        cfg['aes_key'] = config["settings"]['aes_key']
-    if cfg['xi_url'] is None:
-        cfg['xi_url'] = config["settings"]['xi_url']
+    try:
+        stgs = dict(config['settings'])
+    except:
+        raise ValueError('there are no settings in config')
+
+    return stgs
+
+def getConfig(parameters=['xi_url','aes_key']):
+    config = configparser.ConfigParser()
+    config.read('config')
+    if str(paremeters).lower() == 'all':
+        parameters = ['xi_url','aes_key','test']
+    cfg = {x: os.environ.get(x.upper(),config["settings"][x]) for x in paremeters}
+        
     return cfg
 
 def requestExchange(exchange, method, encrypted=True):
