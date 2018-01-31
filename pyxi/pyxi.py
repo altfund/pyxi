@@ -1,5 +1,9 @@
 #!/bin/python3
 
+# An adapter meant to be used to abstract away dealing with crypto
+# exchanges. currently works with github.com/altfund/xchange-interface which
+# relies on the knowm package and github.com/ccxt/ccxt.
+
 import json
 import requests
 import random
@@ -9,11 +13,23 @@ import os
 import configparser
 
 from Crypto.Cipher import AES
-from .ccxt_balance import CcxtClient
+from .ccxt_interface import CcxtClient
 
+#TODO
+# 1. figure out what to do about the invoke/package usage . problem
+# 2. take "all" call out
+# 3. clean up all the extra methods, make them simpler
+# 4. think through switching on calls to knowm v. ccxt
+# 5. change output so it doesn't return dict with name of call... i.e.
+#    separate invoke program from pyxi
+# 6. make sure entire object is a dictionary so no subsequent calls to
+#   json.loads are necessary.
+# 7. Yell REALLY loud and specifically or just thrown an exception, when methods
+#    are thrown incorrect parameters
 
 # balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
+exchanges_limit_order_on_ccxt = ["BINANCE"]
 deprecated_exchanged = ['BTC38', 'BTCE', 'HUOBI','JUBI', 'CHBTC', 'BTER']
 exchanges = ['ALL', 'BINANCE', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX',  'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS',  'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE',  'CEXIO', 'CCEX', 'CAMPBX',  'BTCTRADE', 'BTCMARKETS',  'BTCC',  'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
 # exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
@@ -156,6 +172,63 @@ def requestOrderBook(method, exchange, base, quote):
         response.update({exchange.upper(): data})
     return response
 
+def cancelLimitOrder(exchange, order_id, symbol=""):
+    config = getConfig()
+    response = {}
+    order_to_cancel = {}
+    if exchange.lower() == 'all':
+        for exchange in exchanges:
+            creds = getCreds(exchange)
+            order_to_cancel.update({"exchange_credentials": creds});
+            order_to_cancel.update({"order_id": order_id});
+            r = send(encrypt(order_to_cancel, config), "cancelorder", config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    else:
+        creds = getCreds(exchange)
+        order_to_cancel.update({"exchange_credentials": creds});
+        order_to_cancel.update({"order_id": order_id});
+        if exchange.upper() in exchanges_limit_order_on_ccxt:
+            ccxtclient = CcxtClient(order_to_cancel)
+            status, response = ccxtclient.cancel_limit_order(order_id, symbol)
+            if not status:
+                print("status", status)
+                print("response", response)
+                return "ERROR"
+            else:
+                print("response", response)
+                return response
+        else:
+            r = send(encrypt(order_to_cancel, config), "cancelorder", config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    return response
+
+def amCancelLimitOrder(exchange_dict, order_id, symbol=""):
+    print("PARAMS TO AM CANCEL LIMIT ORDER")
+    print("exchange_dict", exchange_dict)
+    print("order_id", order_id)
+    print("symbol", symbol)
+    config = getConfig()
+    exchange_dict.update({"order_id": order_id});
+    exchange_name = exchange_dict['exchange_credentials']['exchange']
+    if exchange_name.upper() in exchanges_limit_order_on_ccxt:
+        ccxtclient = CcxtClient(exchange_dict)
+        status, response = ccxtclient.cancel_limit_order(order_id, symbol)
+        if not status:
+            print("status", status)
+            print("response", response)
+            return "ERROR"
+        else:
+            print("response", response)
+            return response
+    else:
+        r = send(encrypt(exchange_dict, config), "cancelorder", config)
+        data = decrypt(r)
+    if data == "true":
+        return True;
+    else:
+        return json.loads(data)
 
 def requestLimitOrder(exchange, limitorder, ordertype):
     order = ""
@@ -170,18 +243,28 @@ def requestLimitOrder(exchange, limitorder, ordertype):
         print("Must set order type to ASK or BID");
     else:
         config = getConfig()
-        response = {}
-        #if exchange.lower() == 'all':
-        #    for exchange in exchanges:
-        #        creds = getCreds(exchange)
-        #        limitorder.update({"exchange_credentials":creds})
-        #        r = send(encrypt(limitorder, config), "limitorder", config)
-        #       data = decrypt(r)
-        #       response.update({exchange.upper(): data})
-        #else:
-        r = send(encrypt(limitorder, config), "limitorder", config)
-        data = decrypt(r)
-        response.update({exchange.upper(): data})
+        if exchange.upper() in exchanges_limit_order_on_ccxt:
+            ccxtclient = CcxtClient(limitorder)
+            status, response = ccxtclient.submit_limit_order(limitorder, ordertype)
+            if not status:
+                print("status", status)
+                print("response", response)
+                return "ERROR"
+            else:
+                return response
+        else:
+            response = {}
+            #if exchange.lower() == 'all':
+            #    for exchange in exchanges:
+            #        creds = getCreds(exchange)
+            #        limitorder.update({"exchange_credentials":creds})
+            #        r = send(encrypt(limitorder, config), "limitorder", config)
+            #       data = decrypt(r)
+            #       response.update({exchange.upper(): data})
+            #else:
+            r = send(encrypt(limitorder, config), "limitorder", config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
     return response
 
 
@@ -266,7 +349,7 @@ def requestExchangeAccountBalance(exchange):
         return response
 
 
-def requestOpenOrders(exchange):
+def requestOpenOrders(exchange, base="", quote=""):
     config = getConfig()
     response = {}
     temp = {}
@@ -279,6 +362,10 @@ def requestOpenOrders(exchange):
         exchange = exchange['exchange_credentials']
     else:
         exchange_name = exchange
+        exchange = {}
+        exchange['exchange_credentials'] = getCreds(exchange_name)
+        exchange['exchange_credentials']['exchange'] = exchange_name
+        exchange = exchange['exchange_credentials']
 
     if exchange_name.lower() == 'all':
         for exchange in exchanges:
@@ -287,6 +374,16 @@ def requestOpenOrders(exchange):
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
+        """
+        if exchange_name.upper() in exchanges_limit_order_on_ccxt:
+            ccxtclient = CcxtClient(exchange)
+            status, response = ccxtclient.request_open_orders(base, quote)
+            if not status:
+                return "ERROR"
+            else:
+                return response
+        else:
+        """
         # creds = getCreds(exchange)
         r = send(encrypt(exchange, config), "openorders", config)
         data = decrypt(r)
@@ -373,40 +470,6 @@ def requestTradeHistory(exchange, method="tradehistory"):
         response.update({exchange.upper(): data})
     return response
 
-
-def cancelLimitOrder( exchange, order_id):
-    config = getConfig()
-    response = {}
-    order_to_cancel = {}
-    if exchange.lower() == 'all':
-        for exchange in exchanges:
-            creds = getCreds(exchange)
-            order_to_cancel.update({"exchange_credentials": creds});
-            order_to_cancel.update({"order_id": order_id});
-            r = send(encrypt(order_to_cancel, config), "cancelorder", config)
-            data = decrypt(r)
-            response.update({exchange.upper(): data})
-    else:
-        creds = getCreds(exchange)
-        order_to_cancel.update({"exchange_credentials": creds});
-        order_to_cancel.update({"order_id": order_id});
-        r = send(encrypt(order_to_cancel, config), "cancelorder", config)
-        data = decrypt(r)
-        response.update({exchange.upper(): data})
-    return response
-
-
-def amCancelLimitOrder(exchange_dict, order_id):
-    config = getConfig()
-    exchange_dict.update({"order_id": order_id});
-    r = send(encrypt(exchange_dict, config), "cancelorder", config)
-    data = decrypt(r)
-    if data == "true":
-        return True;
-    else:
-        return json.loads(data)
-
-
 def requestOrders(exchange, orders):
     creds = getCreds(exchange)
     data = {'exchange_credentials':creds,'order_ids':orders}
@@ -432,4 +495,21 @@ def requestAvailableMarkets(coe_list):
     r = send(encrypt(coe_list, config), "availablemarkets", config, False)
     data = decrypt(r);
     response.update({"availablemarkets": data})
+    return response
+
+def localRequestBalance(exchange):
+    config = getConfig()
+    response = {}
+    if exchange.lower() == 'all':
+        for exchange in exchanges:
+            creds = getCreds(exchange)
+            r = send(encrypt(creds, config), "balance", config)
+            data = decrypt(r)
+            response.update({exchange.upper(): data})
+    else:
+        creds = getCreds(exchange)
+        r = send(encrypt(creds, config), "balance", config)
+        data = decrypt(r)
+        print("the data and it's damn shape", data)
+        response.update({exchange.upper(): data})
     return response

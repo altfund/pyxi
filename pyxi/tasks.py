@@ -13,6 +13,7 @@ from invoke import task
 from .pyxi import directRequest
 from .pyxi import requestAggregateOrderBooks
 from .pyxi import requestBalance
+from .pyxi import localRequestBalance
 from .pyxi import requestTradeHistory
 from .pyxi import requestOpenOrders
 from .pyxi import requestExchange
@@ -56,14 +57,17 @@ def getCreds(exchange):
         return creds
 
 def report(data, dump=False):
-    for key, value in data.items():
-        #if (value == None or 'ERROR' in value or 'exception' in value or 'error' in value or re.match(r'.*error.*', value.lower()) or re.match(r'.*redacted.*', value.lower()) or len(value) < 3): response.update({"error": True})
-        #    print_exchange_report(key, value, dump)
-        #else:
-        print("==============================================================")
-        print(key)
-        print("==============================================================")
-        print(value)
+    try:
+        for key, value in data.items():
+            #if (value == None or 'ERROR' in value or 'exception' in value or 'error' in value or re.match(r'.*error.*', value.lower()) or re.match(r'.*redacted.*', value.lower()) or len(value) < 3): response.update({"error": True})
+            #    print_exchange_report(key, value, dump)
+            #else:
+            print("==============================================================")
+            print(key)
+            print("==============================================================")
+            print(value)
+    except Exception as e:
+        print(data)
 
 def print_report( response, dump ):
     if dump:
@@ -111,7 +115,7 @@ def print_exchange_results(response, failure):
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def balance(name, exchange):
-    response = requestBalance(exchange)
+    response = localRequestBalance(exchange)
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
@@ -134,6 +138,11 @@ def fundinghistory(name, exchange):
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def openorders(name, exchange):
     response = requestOpenOrders(exchange)
+    report(response)
+
+@task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges", 'base': "give -b base currency", 'quote': "give -q quote currency"})
+def requestOpenOrdersSymbol(name, exchange, base, quote):
+    response = requestOpenOrders(exchange, base=base, quote=quote)
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
@@ -238,6 +247,11 @@ def isfeasible(name, exchange):
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges"})
 def currency(name, exchange):
     response = requestExchange(exchange, 'currency')
+    report(response)
+
+@task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges", "order_id": "give -o id of order to cancel", "symbol": "give -s to provide market order should be canceled on."})
+def cancelorderSymbol(name, exchange, order_id, symbol):
+    response = cancelLimitOrder(exchange, order_id, symbol)
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges", "order_id": "give -o id of order to cancel"})
