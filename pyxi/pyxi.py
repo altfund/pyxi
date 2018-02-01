@@ -44,20 +44,23 @@ def send( data, method, config, json=False):
     return r
 
 def decrypt(payload):
-    config = getConfig()
-    payload = json.loads(payload)
-    plain_text = ""
-    #    try:
-    init_vector = payload['iv']
-    encrypted_data = payload['encrypted_data']
-    init_vector = base64.b64decode(init_vector)
-    encrypted_data = base64.b64decode(encrypted_data)
-    encryption_suite = AES.new(config['aes_key'], AES.MODE_CFB, init_vector)
+    if payload is None:
+        return ""
+    else:
+        config = getConfig()
+        payload = json.loads(payload)
+        plain_text = ""
+        #    try:
+        init_vector = payload['iv']
+        encrypted_data = payload['encrypted_data']
+        init_vector = base64.b64decode(init_vector)
+        encrypted_data = base64.b64decode(encrypted_data)
+        encryption_suite = AES.new(config['aes_key'], AES.MODE_CFB, init_vector)
 
-    plain_text = encryption_suite.decrypt(encrypted_data).decode('utf-8')
-    #plain_text = plain_text.decode('utf-8')
-    #except:
-    #    plain_text = json.dumps(payload)
+        plain_text = encryption_suite.decrypt(encrypted_data).decode('utf-8')
+        #plain_text = plain_text.decode('utf-8')
+        #except:
+        #    plain_text = json.dumps(payload)
 
     return plain_text
 

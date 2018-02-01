@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pyxi',
-      version='0.5',
+      version='0.51',
       description='Python wrapper for xchange-interface API',
       url='http://github.com/altfund/pyxi',
       author='Altfund Capital',
