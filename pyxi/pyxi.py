@@ -118,9 +118,9 @@ def getSettings():
 def getConfig(parameters=['xi_url','aes_key']):
     config = configparser.ConfigParser()
     config.read('config')
-    if str(paremeters).lower() == 'all':
+    if str(parameters).lower() == 'all':
         parameters = ['xi_url','aes_key','test']
-    cfg = {x: os.environ.get(x.upper(),config["settings"][x]) for x in paremeters}
+    cfg = {x: os.environ.get(x.upper(),config["settings"][x]) for x in parameters}
         
     return cfg
 
