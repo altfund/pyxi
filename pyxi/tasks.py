@@ -141,7 +141,7 @@ def openorders(name, exchange):
     report(response)
 
 @task(help={'exchange': "give -e name of EXCHANGE or ALL for all exchanges", 'base': "give -b base currency", 'quote': "give -q quote currency"})
-def requestOpenOrdersSymbol(name, exchange, base, quote):
+def openorderssymbol(name, exchange, base, quote):
     response = requestOpenOrders(exchange, base=base, quote=quote)
     report(response)
 

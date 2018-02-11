@@ -29,7 +29,8 @@ from .ccxt_interface import CcxtClient
 
 # balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
-exchanges_limit_order_on_ccxt = ["BINANCE"]
+exchanges_cancel_order_on_ccxt = ["BINANCE"]
+exchanges_open_order_on_ccxt = ["NONE"]
 deprecated_exchanged = ['BTC38', 'BTCE', 'HUOBI','JUBI', 'CHBTC', 'BTER']
 exchanges = ['ALL', 'BINANCE', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX',  'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS',  'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE',  'CEXIO', 'CCEX', 'CAMPBX',  'BTCTRADE', 'BTCMARKETS',  'BTCC',  'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
 # exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
@@ -215,7 +216,7 @@ def amCancelLimitOrder(exchange_dict, order_id, symbol=""):
     config = getConfig()
     exchange_dict.update({"order_id": order_id});
     exchange_name = exchange_dict['exchange_credentials']['exchange']
-    if exchange_name.upper() in exchanges_limit_order_on_ccxt:
+    if exchange_name.upper() in exchanges_cancel_order_on_ccxt:
         ccxtclient = CcxtClient(exchange_dict)
         status, response = ccxtclient.cancel_limit_order(order_id, symbol)
         if not status:
@@ -246,7 +247,7 @@ def requestLimitOrder(exchange, limitorder, ordertype):
         print("Must set order type to ASK or BID");
     else:
         config = getConfig()
-        if exchange.upper() in exchanges_limit_order_on_ccxt:
+        if exchange.upper() in exchanges_cancel_order_on_ccxt:
             ccxtclient = CcxtClient(limitorder)
             status, response = ccxtclient.submit_limit_order(limitorder, ordertype)
             if not status:
@@ -351,7 +352,6 @@ def requestExchangeAccountBalance(exchange):
     else:
         return response
 
-
 def requestOpenOrders(exchange, base="", quote=""):
     config = getConfig()
     response = {}
@@ -368,6 +368,7 @@ def requestOpenOrders(exchange, base="", quote=""):
         exchange = {}
         exchange['exchange_credentials'] = getCreds(exchange_name)
         exchange['exchange_credentials']['exchange'] = exchange_name
+        exchange_with_creds = exchange
         exchange = exchange['exchange_credentials']
 
     if exchange_name.lower() == 'all':
@@ -377,20 +378,18 @@ def requestOpenOrders(exchange, base="", quote=""):
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
-        """
-        if exchange_name.upper() in exchanges_limit_order_on_ccxt:
-            ccxtclient = CcxtClient(exchange)
+        if exchange_name.upper() in exchanges_open_order_on_ccxt:
+            ccxtclient = CcxtClient(exchange_with_creds)
             status, response = ccxtclient.request_open_orders(base, quote)
             if not status:
                 return "ERROR"
             else:
                 return response
         else:
-        """
-        # creds = getCreds(exchange)
-        r = send(encrypt(exchange, config), "openorders", config)
-        data = decrypt(r)
-        # response.update({exchange.upper(): data})
+            # creds = getCreds(exchange)
+            r = send(encrypt(exchange, config), "openorders", config)
+            data = decrypt(r)
+            # response.update({exchange.upper(): data})
         response = data
     return response
 

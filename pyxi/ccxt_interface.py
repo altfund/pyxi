@@ -177,7 +177,8 @@ class CcxtClient(object):
             else:
                 return True, True
         else:
-            raise CancelOrderException("Failed to cancel order in production")
+            #raise CancelOrderException("Failed to cancel order in production")
+            print("failed in all attempts to cancel orders")
 
     def request_open_orders(self, base, quote):
         if not self.exchange_class:
@@ -187,6 +188,15 @@ class CcxtClient(object):
                 symbol = base + "/" + quote
                 order_res = self.exchange_class.fetch_open_orders(symbol=symbol)
             except NetworkError as e:
+                print("network exception finding ", e)
                 continue
+            except Exception as e:
+                print("exception finding ", e)
             else:
-                return True, order_res
+                return True, self.parse_new_open_orders(order_res)
+        else:
+            print("failed all attemps to get open orders")
+
+    def parse_new_open_orders(self, open_orders):
+        #[{"type":"BID","status":"NEW","originalAmount":1.00000000,"cumulativeAmount":0E-8,"averagePrice":0.00100000,"currencyPair":"ETH/BTC","id":"9e05ff43-aeec-428a-b55a-173ad268bece","timestamp":1517550018199,"limitPrice":0.00100000,"orderFlags":[],"remainingAmount":1.00000000}]
+        return open_orders
