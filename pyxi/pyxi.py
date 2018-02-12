@@ -26,6 +26,8 @@ from .ccxt_interface import CcxtClient
 #   json.loads are necessary.
 # 7. Yell REALLY loud and specifically or just thrown an exception, when methods
 #    are thrown incorrect parameters
+# 8. STOP using print statements, do logging correctly.
+# 9. pyxi should have no notion of config with credentials
 
 # balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
@@ -385,13 +387,9 @@ def requestOpenOrders(exchange, base="", quote=""):
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
-        print("exchange name: ", exchange_name)
         if exchange_name.upper() in exchanges_open_order_on_ccxt:
-            print("exchange stuffs", exchange)
             ccxtclient = CcxtClient(exchange_with_creds)
-            print("binance special case")
             if base is "" or quote is "":
-                print("start calling all markets on binance")
                 markets = ccxtclient.get_markets()
                 response = []
                 for m in markets:
@@ -403,14 +401,12 @@ def requestOpenOrders(exchange, base="", quote=""):
                             response.append(r)
                 data = response
             else:
-                print("calling binance with base and quote")
                 status, response = ccxtclient.request_open_orders(base, quote)
                 if not status:
                     return "ERROR"
                 else:
                     return response
         else:
-            print("caling xi for open orders")
             # creds = getCreds(exchange)
             r = send(encrypt(exchange, config), "openorders", config)
             data = decrypt(r)
