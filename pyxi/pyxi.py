@@ -399,13 +399,15 @@ def requestOpenOrders(exchange, base="", quote=""):
                     elif len(new_response) > 0:
                         for r in new_response:
                             response.append(r)
-                data = response
+                # see todo comment 6!
+                data = json.dumps(response)
             else:
                 status, response = ccxtclient.request_open_orders(base, quote)
                 if not status:
                     return "ERROR"
                 else:
-                    return response
+                    # see todo comment 6!
+                    return json.dumps( response )
         else:
             # creds = getCreds(exchange)
             r = send(encrypt(exchange, config), "openorders", config)
