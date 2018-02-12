@@ -26,6 +26,16 @@ class CcxtClient(object):
             if 'passphrase' in exchange_account['exchange_credentials']:
                 self.exchange_class.password = self.password
 
+    def get_markets(self):
+        exchange_markets = self.exchange_class.load_markets()
+        markets = []
+        for m in exchange_markets:
+            market_array = m.split("/")
+            if len(market_array) == 2:
+                markets.append({"base": market_array[0],
+                                "quote": market_array[1]})
+        return markets
+
     def get_account_balance(self):
         if not self.exchange_class:
             return False, {}
@@ -198,5 +208,76 @@ class CcxtClient(object):
             print("failed all attemps to get open orders")
 
     def parse_new_open_orders(self, open_orders):
-        #[{"type":"BID","status":"NEW","originalAmount":1.00000000,"cumulativeAmount":0E-8,"averagePrice":0.00100000,"currencyPair":"ETH/BTC","id":"9e05ff43-aeec-428a-b55a-173ad268bece","timestamp":1517550018199,"limitPrice":0.00100000,"orderFlags":[],"remainingAmount":1.00000000}]
-        return open_orders
+        #knowm
+        #[{"type":"BID","status":"NEW",
+        #"originalAmount":1.00000000,
+        #"cumulativeAmount":0E-8,
+        #"averagePrice":0.00100000,
+        #"currencyPair":"ETH/BTC",
+        #"id":"9e05ff43-aeec-428a-b55a-173ad268bece",
+        #"timestamp":1517550018199,
+        #"limitPrice":0.00100000,
+        #"orderFlags":[],
+        #"remainingAmount":1.00000000}]
+
+        #ccxt
+        #{'info':
+            #{'symbol': 'ETHBTC',
+            #'orderId': 68052503,
+            #'clientOrderId': 'vLBp3srkZiYSA5DpUzfElq',
+            #'price': '0.10968800',
+            #'origQty': '0.07300000',
+            #'executedQty': '0.00000000',
+            #'status': 'NEW',
+            #'timeInForce': 'GTC',
+            #'type': 'LIMIT',
+            #'side': 'SELL',
+            #'stopPrice': '0.00000000',
+            # 'icebergQty': '0.00000000',
+            # 'time': 1517549611110, '
+            #isWorking': True},
+        #'id': '68052503',
+        #'timestamp': 1517549611110,
+        #'datetime': '2018-02-02T05:33:31.110Z',
+        #'symbol': 'ETH/BTC',
+        #'type': 'limit',
+        #'side': 'sell',
+        #'price': 0.109688,
+        #'amount': 0.073,
+        #'cost': 0.008007223999999999,
+        #'filled': 0.0,
+        #'remaining': 0.073,
+        #'status': 'open',
+        #'fee': None}]
+        parsed_open_orders = []
+        for open_order in open_orders:
+            side = open_order.get('side', open_order.get('info', {}).get('side'))
+            if side.lower() == "sell":
+                side = "ASK"
+            if side.lower() == "buy":
+                side = "BID"
+
+            remainingAmount = open_order.get('remaining', "")
+            #TODO handle case where remainingAmount is in 'info
+            #if remainingAmount = "":
+            #    origQty = open_order.get('info', {}).get("origQty")
+            #    executedQty = open_order.get('info', {}).get("executedQty")
+            # blah blah origQty - executedQty
+
+            new_order = {
+                "type": side,
+                "status": open_order.get('status', open_order.get('info', {}).get('status')),
+                "originalAmount": open_order.get('amount', open_order.get('info', {}).get('origQty')),
+                "cumulativeAmount": open_order.get('filled', open_order.get('info', {}).get('executedQty')),
+            "averagePrice": "",
+            "currencyPair": open_order.get('symbol', open_order.get('info', {}).get('symbol')),
+            "id": open_order.get('id', open_order.get('info', {}).get('orderId')),
+            "timestamp": open_order.get('timestamp', open_order.get('info', {}).get('time')),
+            "limitPrice": open_order.get('price', open_order.get('info', {}).get('price')),
+            "orderFlags":[],
+            "remainingAmount": remainingAmount,
+            "api": "ccxt",
+            "rawOut": open_order
+            }
+            parsed_open_orders.append(new_order)
+        return parsed_open_orders

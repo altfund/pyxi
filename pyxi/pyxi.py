@@ -30,7 +30,7 @@ from .ccxt_interface import CcxtClient
 # balance, cancelorder, limitorder, openorders, orderbook, json, ticker, tradefees, tradehistory,
 
 exchanges_cancel_order_on_ccxt = ["BINANCE"]
-exchanges_open_order_on_ccxt = ["NONE"]
+exchanges_open_order_on_ccxt = ["BINANCE"]
 deprecated_exchanged = ['BTC38', 'BTCE', 'HUOBI','JUBI', 'CHBTC', 'BTER']
 exchanges = ['ALL', 'BINANCE', 'GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX', 'VAULTORO', 'TRUEFX', 'QUADRIGACX', 'LUNO', 'GEMINI', 'YOBIT', 'LIVECOIN', 'VIRCUREX',  'GATECOIN', 'THEROCK', 'RIPPLE', 'QUOINE', 'TAURUS',  'MERCADOBITCOIN', 'OKCOIN', 'POLONIEX', 'PAYMIUM', 'HITBTC', 'LAKEBTC', 'INDEPENDENTRESERVE', 'ITBIT', 'GDAX', 'KRAKEN', 'EMPOEX', 'DSX', 'CRYPTONIT', 'CRYPTOPIA', 'CRYPTOFACILITIES', 'COINMATE', 'COINFLOOR', 'COINBASE',  'CEXIO', 'CCEX', 'CAMPBX',  'BTCTRADE', 'BTCMARKETS',  'BTCC',  'BLOCKCHAIN', 'BLEUTRADE', 'BITTREX', 'BITSTAMP', 'BITSO', 'BITMARKET', 'BITFINEX', 'BITCUREX', 'BITCOINIUM', 'BITCOINDE', 'BITCOINCORE', 'BITCOINCHARTS', 'BITCOINAVERAGE', 'BITBAY', 'ANX']
 # exchanges = ['GDAX', 'KRAKEN', 'POLONIEX', 'BITFINEX']
@@ -380,11 +380,24 @@ def requestOpenOrders(exchange, base="", quote=""):
     else:
         if exchange_name.upper() in exchanges_open_order_on_ccxt:
             ccxtclient = CcxtClient(exchange_with_creds)
-            status, response = ccxtclient.request_open_orders(base, quote)
-            if not status:
-                return "ERROR"
+            if base is "" or quote is "":
+                markets = ccxtclient.get_markets()
+                response = []
+                for m in markets:
+                    status, new_response = ccxtclient.request_open_orders(m[ "base" ], m[ "quote" ])
+                    if not status:
+                        print('failed to get open order')
+                    elif len(new_response) > 0:
+                        for r in new_response:
+                            response.append(r)
+                data = response
+
             else:
-                return response
+                status, response = ccxtclient.request_open_orders(base, quote)
+                if not status:
+                    return "ERROR"
+                else:
+                    return response
         else:
             # creds = getCreds(exchange)
             r = send(encrypt(exchange, config), "openorders", config)
