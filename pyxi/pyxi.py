@@ -362,8 +362,15 @@ def requestOpenOrders(exchange, base="", quote=""):
 
     if isinstance(exchange, dict):
         exchange_name = exchange['exchange_credentials']['exchange']
+        #TODO this is so maddeningly confusing and it has to be addressed sooner
+        #rather than later
+
+        # this handles the case where we pass creds to ccxt in AM
+        exchange_with_creds = exchange
+        # this handles the case where we pass creds to XI in AM
         exchange = exchange['exchange_credentials']
     else:
+        # i don't even know what this is for anymore
         exchange_name = exchange
         exchange = {}
         exchange['exchange_credentials'] = getCreds(exchange_name)
@@ -378,9 +385,13 @@ def requestOpenOrders(exchange, base="", quote=""):
             data = decrypt(r)
             response.update({exchange.upper(): data})
     else:
+        print("exchange name: ", exchange_name)
         if exchange_name.upper() in exchanges_open_order_on_ccxt:
+            print("exchange stuffs", exchange)
             ccxtclient = CcxtClient(exchange_with_creds)
+            print("binance special case")
             if base is "" or quote is "":
+                print("start calling all markets on binance")
                 markets = ccxtclient.get_markets()
                 response = []
                 for m in markets:
@@ -391,14 +402,15 @@ def requestOpenOrders(exchange, base="", quote=""):
                         for r in new_response:
                             response.append(r)
                 data = response
-
             else:
+                print("calling binance with base and quote")
                 status, response = ccxtclient.request_open_orders(base, quote)
                 if not status:
                     return "ERROR"
                 else:
                     return response
         else:
+            print("caling xi for open orders")
             # creds = getCreds(exchange)
             r = send(encrypt(exchange, config), "openorders", config)
             data = decrypt(r)
