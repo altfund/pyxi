@@ -9,7 +9,7 @@ setup(name='pyxi',
       license='MIT',
       packages=['pyxi'],
       install_requires=[
-          'certifi==2017.7.27.1',
+          'certifi==2022.12.7',
           'chardet==3.0.4',
           'configparser==3.5.0',
           'idna==2.6',
